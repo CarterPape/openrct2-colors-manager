@@ -3,7 +3,7 @@ import {
     openMainWindow,
     pluginEnabled,
     initialize,
-} from './temp';
+} from './colorManager';
 
 /**
 Main function & plugin registration
