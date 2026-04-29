@@ -6,6 +6,12 @@ const request = {
     get: (url) =>
         new Promise((resolve, reject) => {
             const req = _get(url, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`GET ${url} returned HTTP ${res.statusCode}`));
+                    res.resume();
+                    return;
+                }
+
                 let result = '';
 
                 res.on('error', reject);
@@ -26,7 +32,7 @@ const request = {
 
 (async () => {
     const apiDeclarationFileData = await request.get(
-        'https://raw.githubusercontent.com/OpenRCT2/OpenRCT2/develop/distribution/openrct2.d.ts'
+        'https://raw.githubusercontent.com/OpenRCT2/OpenRCT2/develop/distribution/scripting/openrct2.d.ts'
     );
 
     await mkdir(join(process.cwd(), 'lib'), { recursive: true });
