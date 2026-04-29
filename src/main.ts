@@ -1,18 +1,23 @@
-import { getHandymen, getMechanics, getSecurity, getEntertainers } from './utils';
+import {
+    pluginName,
+    openMainWindow,
+    pluginEnabled,
+    initialize,
+} from './temp';
 
-const main = (): void => {
-  console.log(`Hello stranger! Your plug-in has started!`);
-
-  console.log(
-    `In your park, there are currently ${map.getAllEntities('guest').length + map.getAllEntities('staff').length} peeps`
-  );
-  console.log(`${map.getAllEntities('staff').length} of them is your staff.`);
-
-  console.log('Your staff consists of:');
-  console.log(`- ${getHandymen().length} handymen`);
-  console.log(`- ${getMechanics().length} mechanics`);
-  console.log(`- ${getSecurity().length} security`);
-  console.log(`- ${getEntertainers().length} entertainers`);
+/**
+Main function & plugin registration
+*/
+var main = function() {
+    if (typeof ui === 'undefined') {
+        return;
+    }
+    ui.registerMenuItem(pluginName, function () {
+        openMainWindow();
+    });
+    if (pluginEnabled) {
+        initialize();
+    }
 };
 
 export default main;

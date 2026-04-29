@@ -11,16 +11,16 @@ jobs:
     strategy:
       matrix:
         os-type: ['ubuntu-latest', 'windows-latest', 'macos-latest']
-        node-version: [18.x]
 
     runs-on: ${{ matrix.os-type }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Download and save latest OpenRCT2 API declaration file
