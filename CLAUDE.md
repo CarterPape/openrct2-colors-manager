@@ -33,7 +33,7 @@ The whole plugin lives here: managed-item table, color/randomness state, the win
 
 Three behaviors worth knowing:
 
-- The recolor logic fires on *every* `ridesetsetting` action for a managed stall (price changes included), not just appearance changes. Cheap to recompute, so it isn't worth filtering.
+- The recolor logic fires on `ridecreate` (a stall was just built — this is what makes "manage new stalls" work) and on *every* `ridesetsetting` action for a managed stall (price changes included), not just appearance changes. The new ride is resolved from `e.result.ride` for `ridecreate` and from `e.args.ride` for `ridesetsetting`. Cheap to recompute, so it isn't worth filtering.
 - `findManagedItem` prefers `shopItemSecondary` over `shopItem` — that's deliberate, because the dual-item stalls (e.g. Information Kiosk = map + umbrella) have the colored item in the secondary slot.
 - "Stall" is identified by ride-type ID being one of `MANAGED_STALL_RIDE_TYPES` (`[32, 35]`, the stalls that sell the four colored items). Other classifications (`'stall'` for food/drink stalls, `'facility'` for toilets) are ignored.
 
