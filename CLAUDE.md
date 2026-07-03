@@ -56,11 +56,9 @@ If you see `Cannot find name 'EntityType'`-style errors, the first thing to chec
 
 ## Runtime debugging: the `openrct2-probe` companion
 
-There are *currently* no unit tests and no in-game feedback loop here; `tsc --noEmit` is the only gate, so runtime behavior (does a new stall actually get recolored?) currently can't be observed except by a human watching the game.
+There are still no unit tests here, so `tsc --noEmit` remains the only in-repo gate — but runtime behavior (does a new stall actually get recolored?) is now observable without a human watching the game, via the **`~/Developer/openrct2-probe`** companion. It's a reusable, plugin-generic harness with three channels (M0–M2 built): a loopback-TCP bridge plugin + CLI client for querying and driving live state, a CLI-screenshot visual channel, and a headless one-shot harness for scripted repro. See the back-pointer `CLAUDE.md` one directory up and the probe repo's own docs.
 
-A companion project, **`~/Developer/openrct2-probe`**, is being built to close that gap. It is planned to be a reusable, plugin-generic harness (a localhost-TCP bridge plugin + CLI client, plus a CLI-screenshot visual channel) that lets an agent query and drive this plugin's live behavior.
-
-Once either the probe or the unit tests are built (or in-progress), update this section.
+The `ridecreate` recolor fix (`pape-docs/0001`) was confirmed this way: driving a stall creation over the bridge and watching the plugin's own `ridesetappearance` actions fire in response. Two gotchas that cost real time, worth knowing before you reach for the probe: the plugin is `type: 'local'` (in `src/index.ts`), so its `action.execute` subscription only arms inside a *loaded park* in a headed single-player game — never on the title-screen demo map, and never headless (where `ui` is `undefined`, so `main()` early-returns before `initialize()`). So the live GUI is the only place to exercise the compiled subscription; headless can still confirm the underlying API facts (which action fires, what's populated when) by driving `eval` directly.
 
 ## Project context
 
