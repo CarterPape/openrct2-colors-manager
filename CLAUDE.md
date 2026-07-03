@@ -37,9 +37,16 @@ Three behaviors worth knowing:
 - `findManagedItem` prefers `shopItemSecondary` over `shopItem` — that's deliberate, because the dual-item stalls (e.g. Information Kiosk = map + umbrella) have the colored item in the secondary slot.
 - "Stall" is identified by ride-type ID being one of `MANAGED_STALL_RIDE_TYPES` (`[32, 35]`, the stalls that sell the four colored items). Other classifications (`'stall'` for food/drink stalls, `'facility'` for toilets) are ignored.
 
+## OpenRCT2 scripting API reference
+
+The canonical scripting docs live upstream and change over time, so reference them live rather than vendoring a copy: 📖 <https://github.com/OpenRCT2/OpenRCT2/blob/master/distribution/scripting/scripting.md>. The two things worth pulling from there when maintaining this plugin:
+
+- **`targetApiVersion` (in `src/index.ts`).** This declares the API the plugin targets for players, so it tracks the latest *stable* release, not `develop`. The authoritative number is the `kPluginApiVersion` constant in [`src/openrct2/scripting/ScriptEngine.h`](https://github.com/OpenRCT2/OpenRCT2/blob/master/src/openrct2/scripting/ScriptEngine.h) on **`master`** — scripting.md's changelog only lists *breaking* changes, so it lags the real number. Before bumping, skim scripting.md's changelog for breaking entries **above the current value** that touch this plugin's surface (ride settings, shop items, colours, windows, game actions); if none do, the bump is safe. Omitting `targetApiVersion` defaults to v33 and logs a startup error.
+- **Hot reload** (the dev workflow this plugin's `build:dev` copy-into-`plugin/` step exists for) is documented in the same guide.
+
 ## The `lib/openrct2.d.ts` gotcha
 
-The plugin uses OpenRCT2 ambient types (`Ride`, `Window`, `WidgetDesc`, `ColourPickerWidget`, etc.) that come from `lib/openrct2.d.ts`. That file is **gitignored** and fetched fresh on every CI run by `script/downloadAndSaveApiDeclarationFile.js` from `https://raw.githubusercontent.com/OpenRCT2/OpenRCT2/develop/distribution/scripting/openrct2.d.ts`. `tsconfig.json` includes `lib/` so `tsc` picks it up. Locally you must run the download script once before `npm run typecheck` will pass.
+The plugin uses OpenRCT2 ambient types (`Ride`, `Window`, `WidgetDesc`, `ColourPickerWidget`, etc.) that come from `lib/openrct2.d.ts`. That file is **gitignored** and fetched fresh on every CI run by `script/downloadAndSaveApiDeclarationFile.js` from `https://raw.githubusercontent.com/OpenRCT2/OpenRCT2/develop/distribution/scripting/openrct2.d.ts`. It's pinned to the **`develop`** branch (bleeding edge) on purpose: typechecking against tomorrow's API acts as a canary, so if OpenRCT2 breaks an API this plugin uses, CI fails *before* that change ships in a stable release rather than after. (`targetApiVersion` is the opposite concern — see below — and tracks the current *stable* API.) `tsconfig.json` includes `lib/` so `tsc` picks it up. Locally you must run the download script once before `npm run typecheck` will pass.
 
 If you see `Cannot find name 'EntityType'`-style errors, the first thing to check is whether the local file is stale relative to the upstream declaration. The download script rejects on non-200 responses, so silent 404s shouldn't recur — but if OpenRCT2 moves the file again, the script's URL is the place to fix it.
 

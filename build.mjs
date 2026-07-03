@@ -3,7 +3,7 @@
 // Prod  → dist/Colors Manager.js       (iife, what OpenRCT2 loads for release)
 // Dev   → dist/Colors Manager_dev.js   (cjs) + a copy into the game's plugin dir
 //
-// Target es2018: OpenRCT2 (API v77, well past v0.5.0) runs modern JS, but the one >ES2015 bit of source is the optional chain `actionSubscription?.dispose()`. es2018 makes esbuild lower that, so the bundle needs no `?.` support at runtime. esbuild can't emit ES5, but this plugin doesn't need pre-0.5.0 compatibility. 🎢
+// Target es2018: OpenRCT2 (well past v0.5.0) runs modern JS, but the one >ES2015 bit of source is the optional chain `actionSubscription?.dispose()`. es2018 makes esbuild lower that, so the bundle needs no `?.` support at runtime. esbuild can't emit ES5, but this plugin doesn't need pre-0.5.0 compatibility. 🎢
 
 import esbuild from 'esbuild';
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';

@@ -7,6 +7,6 @@ registerPlugin({
     authors: [MOD_AUTHOR],
     type: 'local',
     licence: 'MIT',
-    targetApiVersion: 77,
+    targetApiVersion: 114,
     main,
 });
