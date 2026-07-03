@@ -204,11 +204,18 @@ export function openMainWindow(): void {
     });
 }
 
+// The ride we recolor comes from a different place depending on the action: `ridecreate` (a stall was just built) reports the new ride's id only in its result, whereas `ridesetsetting` (an existing stall's setting changed) carries it in the args. Any other action isn't ours to react to.
+function recoloredRideId(e: GameActionEventArgs): number | undefined {
+    if (e.action === 'ridecreate') return (e.result as RideCreateActionResult).ride;
+    if (e.action === 'ridesetsetting') return (e.args as RideSetSettingArgs).ride;
+    return undefined;
+}
+
 export function initialize(): void {
     actionSubscription = context.subscribe('action.execute', (e) => {
-        if (e.action !== 'ridesetsetting') return;
-        const args = e.args as RideSetSettingArgs;
-        const ride = map.getRide(args.ride);
+        const rideId = recoloredRideId(e);
+        if (rideId === undefined) return;
+        const ride = map.getRide(rideId);
         if (!ride || MANAGED_STALL_RIDE_TYPES.indexOf(ride.type) === -1) return;
         recolorStall(ride);
         refreshWindowState();
