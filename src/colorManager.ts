@@ -1,4 +1,4 @@
-import config from './config';
+import { MOD_NAME } from './pluginMeta';
 
 const ShopItem = {
     BALLOON: 0,
@@ -6,7 +6,7 @@ const ShopItem = {
     HAT: 18,
     TSHIRT: 20,
 } as const;
-type ShopItem = typeof ShopItem[keyof typeof ShopItem];
+type ShopItem = (typeof ShopItem)[keyof typeof ShopItem];
 
 // OpenRCT2 ride-type IDs for the stalls whose items we recolor.
 // Matches the upstream RIDE_TYPE_* enum.
@@ -25,10 +25,10 @@ interface ManagedItem {
 }
 
 const MANAGED_ITEMS: readonly ManagedItem[] = [
-    { shopItem: ShopItem.HAT,      label: 'HATS:',      widgetPrefix: 'hat', defaultColor: 28 },
-    { shopItem: ShopItem.TSHIRT,   label: 'T-SHIRTS:',  widgetPrefix: 'ts',  defaultColor: 28 },
+    { shopItem: ShopItem.HAT, label: 'HATS:', widgetPrefix: 'hat', defaultColor: 28 },
+    { shopItem: ShopItem.TSHIRT, label: 'T-SHIRTS:', widgetPrefix: 'ts', defaultColor: 28 },
     { shopItem: ShopItem.UMBRELLA, label: 'UMBRELLAS:', widgetPrefix: 'umb', defaultColor: 28 },
-    { shopItem: ShopItem.BALLOON,  label: 'BALLOONS:',  widgetPrefix: 'bal', defaultColor: 7  },
+    { shopItem: ShopItem.BALLOON, label: 'BALLOONS:', widgetPrefix: 'bal', defaultColor: 7 },
 ];
 
 type ShopItemMap<T> = Record<ShopItem, T>;
@@ -44,7 +44,7 @@ function buildShopItemMap<T>(value: (item: ManagedItem) => T): ShopItemMap<T> {
 const colors: ShopItemMap<number> = buildShopItemMap((i) => i.defaultColor);
 const randomness: ShopItemMap<boolean> = buildShopItemMap(() => true);
 
-export const pluginName = config.getString('MOD_NAME');
+export const pluginName = MOD_NAME;
 export let pluginEnabled = true;
 
 let pluginWindow: Window | undefined;
@@ -99,10 +99,8 @@ function isWindowOpen(w: Window | undefined): w is Window {
 function refreshWindowState(): void {
     if (!isWindowOpen(pluginWindow)) return;
     for (const item of MANAGED_ITEMS) {
-        pluginWindow.findWidget<ColourPickerWidget>(`${item.widgetPrefix}_picker`).colour =
-            colors[item.shopItem];
-        pluginWindow.findWidget<CheckboxWidget>(`${item.widgetPrefix}_random`).isChecked =
-            randomness[item.shopItem];
+        pluginWindow.findWidget<ColourPickerWidget>(`${item.widgetPrefix}_picker`).colour = colors[item.shopItem];
+        pluginWindow.findWidget<CheckboxWidget>(`${item.widgetPrefix}_random`).isChecked = randomness[item.shopItem];
     }
 }
 
@@ -159,7 +157,9 @@ function buildWidgets(): WidgetDesc[] {
                 width: 20,
                 height: 20,
                 colour: colors[item.shopItem],
-                onChange: (c: number) => { colors[item.shopItem] = c; },
+                onChange: (c: number) => {
+                    colors[item.shopItem] = c;
+                },
             },
             {
                 type: 'checkbox',
@@ -170,7 +170,9 @@ function buildWidgets(): WidgetDesc[] {
                 height: 20,
                 isChecked: randomness[item.shopItem],
                 text: 'Random for every stall',
-                onChange: (checked: boolean) => { randomness[item.shopItem] = checked; },
+                onChange: (checked: boolean) => {
+                    randomness[item.shopItem] = checked;
+                },
             },
         );
     }

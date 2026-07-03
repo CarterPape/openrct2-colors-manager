@@ -8,32 +8,28 @@ OpenRCT2 plugin (TypeScript) that auto-recolors stall items (balloons, umbrellas
 
 The build target is a single `iife` bundle at `dist/Colors Manager.js` (prod) or a `commonjs` bundle copied into `${OPENRCT2_PATH}/plugin/` (dev). OpenRCT2 loads the file from its `plugin/` directory at runtime.
 
+The whole toolchain is **esbuild + typescript** — just two dev-dependencies. `build.mjs` (plain Node ESM) drives esbuild; `tsc --noEmit` does typechecking. The old template stack (gulp, rollup + plugins, ts-node, node-config, jest, ESLint, husky, core-js) was cut in favor of this; don't expect any of it.
+
 ## Commands
 
-- `npm run build` — production build (rollup, NODE_ENV=prod)
-- `npm run build:dev` — dev build (NODE_ENV=dev, also writes to `${OPENRCT2_PATH}/plugin/` for hot reload)
-- `npm run build:watch` / `npm run build:dev:watch` — same, watching `src/`
-- `npm test` — Jest via `gulp test` (5 suites, 21 tests across `config/`, `utils/`, `src/`)
-- `npm run test:watch`, `npm run test:coverage`
-- `npm run lint` — **broken**: ESLint 9 needs flat-config migration; the repo still has `.eslintrc.json`. CI doesn't run lint, so it isn't blocking.
+- `npm run build` — production build → `dist/Colors Manager.js` (iife)
+- `npm run build:dev` — dev build → `dist/Colors Manager_dev.js` (cjs), also copied into `${OPENRCT2_PATH}/plugin/` for hot reload
+- `npm run watch` / `npm run watch:dev` — same as the two above, rebuilding on `src/` changes
+- `npm run typecheck` — `tsc --noEmit` against `src/` + `lib/openrct2.d.ts`. This is the only correctness gate (there are no unit tests); CI runs it.
 
-Node is pinned to **23.5.0** (`.nvmrc` and `engines`). CI uses `node-version-file: .nvmrc`, so updating one keeps both in sync.
+Node floor is **Node ≥ 20** (`engines`); `.nvmrc` pins **22** (LTS) and CI reads `node-version-file: .nvmrc`.
 
-For dev builds, `config/local-dev.json` must define `OPENRCT2_PATH` — without it, the dev rollup config will fail when it tries to write into the OpenRCT2 plugins directory. The file is gitignored.
+For dev builds, `build.mjs` needs `OPENRCT2_PATH` to know where to copy the plugin: it reads the `OPENRCT2_PATH` env var first, then falls back to a gitignored `config/local-dev.json` (`{ "OPENRCT2_PATH": "…" }`). Without either, a dev build errors out. Prod builds don't need it.
 
 ## Architecture
 
-The codebase has two distinct halves; treat them differently:
+`build.mjs` bundles `src/index.ts` into one self-contained file (no `node_modules` at runtime — OpenRCT2's scripting host has no module system beyond what the bundle inlines). `lib/openrct2.d.ts` supplies the ambient globals (`ui`, `context`, `map`, `registerPlugin`, …) for typechecking only; it emits nothing and is never imported.
 
-**Scaffolding** (`config/`, `utils/`, `gulp/`, `script/`, `testUtils/`, `rollup.config.*.ts`, `gulpfile.ts`) — well-typed TS, has its own Jest project (`displayName: "scaffolding"`), uses `tsconfig-paths` so root-level imports can use the `~/` alias. `config/Env.ts` is the typed wrapper around the `node-config` library; everything reads env-injected values through it. `rollup-plugin-inject-process-env` bakes `process.env.*` into the bundle at build time so the plugin can read `MOD_NAME` etc. at runtime inside OpenRCT2 (which has no `process`).
-
-**Plugin source** (`src/`) — runs inside OpenRCT2's scripting host. Has a separate Jest project (`displayName: "mod"`) that uses `jest.setup.ts` to stub the OpenRCT2 globals (`map`, `ui`, `context`, etc.). When testing plugin code, mock the globals you need in `jest.setup.ts` the same way `map.getAllEntities` is stubbed.
-
-Entry point chain: `src/index.ts` calls `registerPlugin({...})` → registers `src/main.ts` as the plugin's `main` → `main.ts` imports from `src/colorManager.ts` and wires up the menu item and the `action.execute` subscription.
+Entry point chain: `src/index.ts` calls `registerPlugin({...})` → registers `src/main.ts` as the plugin's `main` → `main.ts` imports from `src/colorManager.ts` and wires up the menu item and the `action.execute` subscription. `src/pluginMeta.ts` holds the `MOD_NAME` / `MOD_AUTHOR` constants (formerly injected via node-config + rollup's inject-process-env; now just hardcoded, since a single plugin doesn't need build-time env injection).
 
 ## `src/colorManager.ts`
 
-The whole plugin lives here: managed-item table, color/randomness state, the window widgets, and the `action.execute` subscription. Module-level singletons (`pluginEnabled`, `pluginWindow`, `actionSubscription`, `colors`, `randomness`) — fine for a plugin this small, but means there's nothing under unit test in `src/` other than the four `utils.ts` helpers.
+The whole plugin lives here: managed-item table, color/randomness state, the window widgets, and the `action.execute` subscription. Module-level singletons (`pluginEnabled`, `pluginWindow`, `actionSubscription`, `colors`, `randomness`) — fine for a plugin this small. There are no unit tests; `tsc --noEmit` is the safety net.
 
 Three behaviors worth knowing:
 
@@ -43,9 +39,9 @@ Three behaviors worth knowing:
 
 ## The `lib/openrct2.d.ts` gotcha
 
-Tests reference OpenRCT2 ambient types (`Entity`, `Guest`, `Staff`, `GameMap`, etc.) that come from `lib/openrct2.d.ts`. That file is **gitignored** and fetched fresh on every CI run by `script/downloadAndSaveApiDeclarationFile.js` from `https://raw.githubusercontent.com/OpenRCT2/OpenRCT2/develop/distribution/scripting/openrct2.d.ts`.
+The plugin uses OpenRCT2 ambient types (`Ride`, `Window`, `WidgetDesc`, `ColourPickerWidget`, etc.) that come from `lib/openrct2.d.ts`. That file is **gitignored** and fetched fresh on every CI run by `script/downloadAndSaveApiDeclarationFile.js` from `https://raw.githubusercontent.com/OpenRCT2/OpenRCT2/develop/distribution/scripting/openrct2.d.ts`. `tsconfig.json` includes `lib/` so `tsc` picks it up. Locally you must run the download script once before `npm run typecheck` will pass.
 
-If you ever see "tests pass locally but fail in CI" (or the reverse) with `Cannot find name 'EntityType'`-style errors, the first thing to check is whether the local file is stale relative to the upstream declaration. The download script rejects on non-200 responses, so silent 404s shouldn't recur — but if OpenRCT2 moves the file again, the script's URL is the place to fix it.
+If you see `Cannot find name 'EntityType'`-style errors, the first thing to check is whether the local file is stale relative to the upstream declaration. The download script rejects on non-200 responses, so silent 404s shouldn't recur — but if OpenRCT2 moves the file again, the script's URL is the place to fix it.
 
 ## Dependabot
 

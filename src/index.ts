@@ -1,10 +1,10 @@
-import config from './config';
+import { MOD_NAME, MOD_AUTHOR } from './pluginMeta';
 import main from './main';
 
 registerPlugin({
-    name: config.getString('MOD_NAME'),
+    name: MOD_NAME,
     version: '1.0',
-    authors: [config.getString('MOD_AUTHOR')],
+    authors: [MOD_AUTHOR],
     type: 'local',
     licence: 'MIT',
     targetApiVersion: 77,

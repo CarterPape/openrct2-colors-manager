@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es5",
+        "target": "es2018",
         "module": "esnext",
         "moduleResolution": "node",
         "strict": true,
@@ -10,21 +10,10 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noImplicitReturns": true,
-        "resolveJsonModule": true,
-        "baseUrl": ".",
-        "paths": {
-            "~/*": ["./*"],
-            "src/*": ["./src/*"],
-            "gulp": ["./node_modules/gulp"],
-            "config": ["./node_modules/config"]
-        },
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
+        "noEmit": true
     },
-    "ts-node": {
-        "compilerOptions": {
-            "module": "commonjs"
-        }
-    }
+    "include": ["src", "lib"]
 }
