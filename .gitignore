@@ -4,6 +4,9 @@ lib/openrct2.d.ts
 # local config files
 config/local*.json
 
+# local, private Claude context (@-imported by CLAUDE.md when present)
+CLAUDE.local.md
+
 # Logs
 logs
 *.log
