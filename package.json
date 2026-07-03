@@ -1,8 +1,7 @@
 {
     "name": "openrct2-colors-manager",
     "version": "1.0.0",
-    "description": "",
-    "main": "",
+    "description": "OpenRCT2 plugin that auto-recolors stall items (balloons, umbrellas, hats, t-shirts).",
     "type": "module",
     "scripts": {
         "build": "node build.mjs",
