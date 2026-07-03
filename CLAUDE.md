@@ -8,14 +8,14 @@ OpenRCT2 plugin (TypeScript) that auto-recolors stall items (balloons, umbrellas
 
 The build target is a single `iife` bundle at `dist/Colors Manager.js` (prod) or a `commonjs` bundle copied into `${OPENRCT2_PATH}/plugin/` (dev). OpenRCT2 loads the file from its `plugin/` directory at runtime.
 
-The whole toolchain is **esbuild + typescript** — just two dev-dependencies. `build.mjs` (plain Node ESM) drives esbuild; `tsc --noEmit` does typechecking. The old template stack (gulp, rollup + plugins, ts-node, node-config, jest, ESLint, husky, core-js) was cut in favor of this; don't expect any of it.
+The whole toolchain is **esbuild + typescript** — just two dev-dependencies. `build.mjs` (plain Node ESM) drives esbuild; `tsc --noEmit` does typechecking. The old template stack (gulp, rollup + plugins, ts-node, node-config, jest, ESLint, husky, core-js) was cut in favor of this; don't expect any of it. That cut was about removing template cruft, **not** a vow of dependency minimalism — purposeful deps for a robust test suite (a runner, OpenRCT2-Mocks, a coverage tool) are explicitly wanted here; see `pape-docs/0002`.
 
 ## Commands
 
 - `npm run build` — production build → `dist/Colors Manager.js` (iife)
 - `npm run build:dev` — dev build → `dist/Colors Manager_dev.js` (cjs), also copied into `${OPENRCT2_PATH}/plugin/` for hot reload
 - `npm run watch` / `npm run watch:dev` — same as the two above, rebuilding on `src/` changes
-- `npm run typecheck` — `tsc --noEmit` against `src/` + `lib/openrct2.d.ts`. This is the only correctness gate (there are no unit tests); CI runs it.
+- `npm run typecheck` — `tsc --noEmit` against `src/` + `lib/openrct2.d.ts`. This is the only correctness gate *today* — no unit tests yet, but a test suite is planned and wanted (`pape-docs/0002`); CI runs it.
 
 Node floor is **Node ≥ 20** (`engines`); `.nvmrc` pins **22** (LTS) and CI reads `node-version-file: .nvmrc`.
 
@@ -29,7 +29,7 @@ Entry point chain: `src/index.ts` calls `registerPlugin({...})` → registers `s
 
 ## `src/colorManager.ts`
 
-The whole plugin lives here: managed-item table, color/randomness state, the window widgets, and the `action.execute` subscription. Module-level singletons (`pluginEnabled`, `pluginWindow`, `actionSubscription`, `colors`, `randomness`) — fine for a plugin this small. There are no unit tests; `tsc --noEmit` is the safety net.
+The whole plugin lives here: managed-item table, color/randomness state, the window widgets, and the `action.execute` subscription. Module-level singletons (`pluginEnabled`, `pluginWindow`, `actionSubscription`, `colors`, `randomness`) — fine for a plugin this small. There are no unit tests yet (a suite is planned — `pape-docs/0002`); `tsc --noEmit` is the current safety net.
 
 Three behaviors worth knowing:
 
@@ -54,8 +54,16 @@ If you see `Cannot find name 'EntityType'`-style errors, the first thing to chec
 
 `.github/dependabot.yml` runs weekly grouped npm updates (`npm-dependencies` group) and weekly github-actions updates. `.github/workflows/dependabot-auto-merge.yml` auto-merges semver-patch updates. Anything more than patch needs human review.
 
+## Runtime debugging: the `openrct2-probe` companion
+
+There are *currently* no unit tests and no in-game feedback loop here; `tsc --noEmit` is the only gate, so runtime behavior (does a new stall actually get recolored?) currently can't be observed except by a human watching the game.
+
+A companion project, **`~/Developer/openrct2-probe`**, is being built to close that gap. It is planned to be a reusable, plugin-generic harness (a localhost-TCP bridge plugin + CLI client, plus a CLI-screenshot visual channel) that lets an agent query and drive this plugin's live behavior.
+
+Once either the probe or the unit tests are built (or in-progress), update this section.
+
 ## Project context
 
-Hobby project, archived path (`Developer/archive/OpenRCT/`), low-stakes. The user explicitly OKs destructive ops (force-push, bulk PR closes) when authorized in conversation — don't get extra-cautious about this repo specifically.
+**Actively maintained, not dead.** The path is `Developer/Archive/maintain/OpenRCT/` — the operative word is `maintain`, not `Archive`. The goal: this plugin keeps working as OpenRCT2 keeps shipping updates, and adding new features later takes little setup. That intent is *why* investing in a test suite (`pape-docs/0002`) and the observation tooling (`~/Developer/openrct2-probe`) is worth it here — treat this as a maintainable codebase, not a throwaway.
 
-The README's banner says "DISCONTINUED, TREAT IT LIKE A MODDERS RESOURCE" — that's accurate. No active users to break.
+Still low-stakes in the narrow sense that there are no live production users, so Carter OKs destructive ops (force-push, bulk PR closes) when authorized in conversation — don't get extra-cautious. But "low-stakes" ≠ "throwaway": prefer correct-and-clean changes that keep it maintainable.
