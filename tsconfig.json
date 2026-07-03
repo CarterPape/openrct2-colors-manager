@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "es2018",
         "module": "esnext",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "strict": true,
         "noImplicitAny": true,
         "strictNullChecks": true,
