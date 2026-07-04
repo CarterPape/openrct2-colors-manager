@@ -1,14 +1,9 @@
-import {
-    pluginName,
-    openMainWindow,
-    pluginEnabled,
-    initialize,
-} from './colorManager';
+import { pluginName, openMainWindow, pluginEnabled, initialize } from './colorManager';
 
 /**
 Main function & plugin registration
 */
-var main = function() {
+var main = function () {
     if (typeof ui === 'undefined') {
         return;
     }
