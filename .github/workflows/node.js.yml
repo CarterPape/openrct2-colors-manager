@@ -28,5 +28,8 @@ jobs:
             - name: Typecheck
               run: npm run typecheck
 
+            - name: Test (enforces the 100% coverage floor on src/recolorLogic.ts)
+              run: npm run test:cov
+
             - name: Build
               run: npm run build

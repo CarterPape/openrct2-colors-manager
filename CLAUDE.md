@@ -8,14 +8,18 @@ OpenRCT2 plugin (TypeScript) that auto-recolors stall items (balloons, umbrellas
 
 The build target is a single `iife` bundle at `dist/Colors Manager.js` (prod) or a `commonjs` bundle copied into `${OPENRCT2_PATH}/plugin/` (dev). OpenRCT2 loads the file from its `plugin/` directory at runtime.
 
-The whole toolchain is **esbuild + typescript** — just two dev-dependencies. `build.mjs` (plain Node ESM) drives esbuild; `tsc --noEmit` does typechecking. The old template stack (gulp, rollup + plugins, ts-node, node-config, jest, ESLint, husky, core-js) was cut in favor of this; don't expect any of it. That cut was about removing template cruft, **not** a vow of dependency minimalism — purposeful deps for a robust test suite (a runner, OpenRCT2-Mocks, a coverage tool) are explicitly wanted here.
+The build toolchain is **esbuild + typescript**: `build.mjs` (plain Node ESM) drives esbuild; `tsc --noEmit` does typechecking. The test toolchain is **Vitest + `@vitest/coverage-v8` + `openrct2-mocks`** (Basssiiie's mock package). The old template stack (gulp, rollup + plugins, ts-node, node-config, jest, ESLint, husky, core-js) was cut in favor of this; don't expect any of it. That cut was about removing template cruft, **not** a vow of dependency minimalism — the test deps were added deliberately (a maintained plugin wants a real suite), matching the sibling `openrct2-probe`'s stack.
 
 ## Commands
 
 - `npm run build` — production build → `dist/Colors Manager.js` (iife)
 - `npm run build:dev` — dev build → `dist/Colors Manager_dev.js` (cjs), also copied into `${OPENRCT2_PATH}/plugin/` for hot reload
 - `npm run watch` / `npm run watch:dev` — same as the two above, rebuilding on `src/` changes
-- `npm run typecheck` — `tsc --noEmit` against `src/` + `lib/openrct2.d.ts`. This is the only correctness gate *today* — no unit tests yet, but a test suite is planned and wanted; CI runs it.
+- `npm run typecheck` — `tsc --noEmit` against `src/` + `lib/openrct2.d.ts`.
+- `npm run test` — Vitest, one run. `npm run test:watch` for the watch loop.
+- `npm run test:cov` — Vitest with V8 coverage; enforces a hard **100% line floor on `src/recolorLogic.ts`** (the pure module). This is what CI runs.
+
+Typecheck + `test:cov` are the two correctness gates; CI runs both before the build.
 
 Node floor is **Node ≥ 20** (`engines`); `.nvmrc` pins **22** (LTS) and CI reads `node-version-file: .nvmrc`.
 
@@ -27,9 +31,14 @@ For dev builds, `build.mjs` needs `OPENRCT2_PATH` to know where to copy the plug
 
 Entry point chain: `src/index.ts` calls `registerPlugin({...})` → registers `src/main.ts` as the plugin's `main` → `main.ts` imports from `src/colorManager.ts` and wires up the menu item and the `action.execute` subscription. `src/pluginMeta.ts` holds the `MOD_NAME` / `MOD_AUTHOR` constants (formerly injected via node-config + rollup's inject-process-env; now just hardcoded, since a single plugin doesn't need build-time env injection).
 
-## `src/colorManager.ts`
+## `src/recolorLogic.ts` + `src/colorManager.ts` (pure logic / game glue split)
 
-The whole plugin lives here: managed-item table, color/randomness state, the window widgets, and the `action.execute` subscription. Module-level singletons (`pluginEnabled`, `pluginWindow`, `actionSubscription`, `colors`, `randomness`) — fine for a plugin this small. There are no unit tests yet (a suite is planned); `tsc --noEmit` is the current safety net.
+The plugin is split along a testability seam:
+
+- **`src/recolorLogic.ts` — pure, import-safe, no game API.** Holds the managed-item table, the item-matching rule (`findManagedItem`), the action→ride-id mapping (`recoloredRideId`), the ride-type predicate (`isManagedStallType`), and the colour/randomness decision (`decideRecolorActions`, RNG injected). It calls no `context`/`map`/`ui` — only ambient *types* (which erase at runtime) — so it unit-tests under Node with zero mocks. **This is the module held to the 100% coverage floor** (`test/recolorLogic.test.ts`).
+- **`src/colorManager.ts` — the game-coupled glue.** Module-level singletons (`pluginEnabled`, `pluginWindow`, `actionSubscription`, `colors`, `randomness`), the `recolorStall` side effect (`context.executeAction`), the window widgets, and the `action.execute` subscription. It imports its decisions from `recolorLogic`. It's **not** in the coverage allowlist: its wiring is checked additively by a few contract tests through OpenRCT2-Mocks (`test/colorManager.behavior.test.ts`), and its window/UI code is left to the manual `openrct2-probe` live bridge (mocking window rendering is low-value).
+
+Why the split — and why no OpenRCT2-Mocks in the *pure* tier: the probe (a data-returning harness) needs no mocks because pure protocol tests capture its value; this plugin's value is a *side effect*, so the pure seam verifies every ingredient of a recolor and the Mocks contract tests verify the recolor actually fires. The subtlest half of the `0001` bug — whether `ride.object.shopItem` is populated at `ridecreate` execute time — is unmockable (you hand-feed the mock) and stays the live-game probe's job.
 
 Three behaviors worth knowing:
 
@@ -56,7 +65,7 @@ If you see `Cannot find name 'EntityType'`-style errors, the first thing to chec
 
 ## Runtime behavior
 
-There are no unit tests yet — `tsc --noEmit` is the only in-repo correctness gate. Two plugin-loading facts matter when reasoning about runtime behavior: the plugin is registered `type: 'local'` (in `src/index.ts`), so its `action.execute` subscription only arms inside a *loaded park* in a headed single-player game — never on the title-screen demo map, and never in a headless server (where `ui` is `undefined`, so `main()` early-returns before `initialize()`). The live single-player game is therefore the only place the compiled subscription actually runs.
+The in-repo gates are `tsc --noEmit` and the Vitest suite (`test:cov`). Neither runs the *compiled* plugin in a real game, and that's a hard constraint, not an omission: the plugin is registered `type: 'local'` (in `src/index.ts`), so its `action.execute` subscription only arms inside a *loaded park* in a headed single-player game — never on the title-screen demo map, and never in a headless server (where `ui` is `undefined`, so `main()` early-returns before `initialize()`). The live single-player game is therefore the only place the compiled subscription actually runs; the Mocks contract tests exercise the subscription *logic* out-of-game, but real-game verification is the manual `openrct2-probe` live bridge.
 
 <!-- Maintainer-local context (scratch-doc pointers, private tooling, project notes) lives in a gitignored CLAUDE.local.md and extends this file when present: -->
 @CLAUDE.local.md
