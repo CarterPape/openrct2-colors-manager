@@ -3,21 +3,22 @@ name: Dependabot auto-merge
 on: pull_request
 
 permissions:
-  contents: write
-  pull-requests: write
+    contents: write
+    pull-requests: write
 
 jobs:
-  auto-merge:
-    if: github.actor == 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fetch Dependabot metadata
-        id: meta
-        uses: dependabot/fetch-metadata@v2
+    auto-merge:
+        if: github.actor == 'dependabot[bot]'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Fetch Dependabot metadata
+              id: meta
+              uses: dependabot/fetch-metadata@v2
 
-      - name: Enable auto-merge for patch updates
-        if: steps.meta.outputs.update-type == 'version-update:semver-patch'
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            # Auto-merge patch *and* minor bumps: every dependency here is dev-only (esbuild, typescript, vitest, coverage-v8, mocks) and sits behind the CI gate (typecheck + the 100% coverage suite + build), so a green minor bump doesn't need human eyes. Only *major* bumps surface for review.
+            - name: Enable auto-merge for patch and minor updates
+              if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
+              run: gh pr merge --auto --squash "$PR_URL"
+              env:
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

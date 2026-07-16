@@ -61,7 +61,7 @@ If you see `Cannot find name 'EntityType'`-style errors, the first thing to chec
 
 ## Dependabot
 
-`.github/dependabot.yml` runs weekly grouped npm updates (`npm-dependencies` group) and weekly github-actions updates. `.github/workflows/dependabot-auto-merge.yml` auto-merges semver-patch updates. Anything more than patch needs human review.
+`.github/dependabot.yml` runs weekly grouped npm updates (`npm-dependencies` group) and weekly github-actions updates. `.github/workflows/dependabot-auto-merge.yml` auto-merges semver-**patch and -minor** updates; only **major** bumps need human review. This is safe because every dependency is dev-only and CI (typecheck + the 100% coverage suite + build) gates the merge — a green minor bump on a dev tool doesn't warrant a human look, which keeps the PR noise down to the majors that actually do.
 
 ## Runtime behavior
 
