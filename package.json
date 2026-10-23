@@ -24,11 +24,11 @@
     },
     "homepage": "https://github.com/CarterPape/openrct2-colors-manager#readme",
     "devDependencies": {
-        "@vitest/coverage-v8": "^4",
+        "@vitest/coverage-v8": "^5",
         "esbuild": "^0.28",
         "openrct2-mocks": "^0.1",
         "typescript": "^7.0",
-        "vitest": "^4"
+        "vitest": "^5"
     },
     "engines": {
         "node": ">=20"
